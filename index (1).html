@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Козацький квест: шлях до булави</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#e3241f; --red-d:#c81c18; --ink:#141414; --mute:#6f6f6f; --line:#e6e6e6;
+    --ok:#1f8a4c; --ok-bg:#e8f5ed; --bad-bg:#fdeceb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    font-family:'Onest',system-ui,sans-serif;color:var(--ink);
+    background-color:var(--red);
+    background-image:
+      radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.10),transparent 55%),
+      radial-gradient(ellipse at 80% 90%,rgba(0,0,0,.14),transparent 60%),
+      linear-gradient(rgba(255,255,255,.09) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.09) 1px,transparent 1px);
+    background-size:auto,auto,44px 44px,44px 44px;
+    background-attachment:fixed;
+    min-height:100vh;display:flex;justify-content:center;padding:28px 16px 40px;
+  }
+  .app{width:100%;max-width:620px;display:flex;flex-direction:column;gap:18px}
+  .head{text-align:center;color:#fff;padding:18px 0 4px}
+  .head .kicker{font-weight:600;font-size:15px;letter-spacing:.06em;text-transform:uppercase;opacity:.95}
+  .head h1{font-weight:800;font-size:38px;line-height:1.05;text-transform:uppercase;margin-top:10px;letter-spacing:-.01em}
+  .card{background:#fff;border-radius:18px;padding:28px 26px;position:relative}
+  .btn{
+    font-family:inherit;font-weight:800;font-size:16px;letter-spacing:.04em;text-transform:uppercase;
+    border:none;cursor:pointer;background:var(--red);color:#fff;
+    padding:17px 22px;border-radius:999px;width:100%;transition:background .15s,transform .08s,opacity .2s;
+  }
+  .btn:hover{background:var(--red-d)}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.35;cursor:default}
+
+  /* Pill divider (like "З 1663 — ДВА ГЕТЬМАНИ") */
+  .pill-div{display:flex;align-items:center;gap:0;margin:0 -26px 22px}
+  .pill-div::before,.pill-div::after{content:"";flex:1;height:1.5px;background:var(--red)}
+  .pill{border:2px solid var(--red);color:var(--red);border-radius:999px;padding:6px 16px;
+    font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;background:#fff}
+  .label{color:var(--red);font-weight:800;text-transform:uppercase;font-size:14px;letter-spacing:.03em;margin-bottom:8px}
+
+  /* Start */
+  .rows .row{display:grid;grid-template-columns:110px 1fr;gap:18px;padding:16px 0;border-bottom:1.5px solid var(--line)}
+  .rows .row:last-child{border-bottom:none}
+  .rows .k{font-weight:800;font-size:30px;line-height:1}
+  .rows .v{font-size:17px;line-height:1.35}
+  .rows .v b{font-weight:800}
+
+  /* HUD */
+  .hud{display:flex;align-items:center;gap:10px;color:#fff}
+  .timer{font-weight:800;font-size:22px;background:#fff;color:var(--red);padding:8px 18px;border-radius:999px;min-width:100px;text-align:center;font-variant-numeric:tabular-nums}
+  .timer.warn{background:var(--ink);color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{50%{transform:scale(1.06)}}
+  .score{margin-left:auto;font-weight:800;font-size:18px;border:2px solid #fff;padding:7px 16px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+  .timebar{height:4px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden}
+  .timebar div{height:100%;background:#fff;transition:width 1s linear}
+
+  /* Map */
+  .map{display:flex;justify-content:space-between;align-items:flex-start;position:relative}
+  .map::before{content:"";position:absolute;left:10%;right:10%;top:19px;height:1.5px;background:rgba(255,255,255,.55);z-index:0}
+  .st{z-index:1;display:flex;flex-direction:column;align-items:center;width:20%;text-align:center}
+  .st .dot{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:16px;
+    background:var(--red);color:#fff;border:2px solid rgba(255,255,255,.6);transition:.3s}
+  .st.active .dot{background:#fff;color:var(--red);border-color:#fff;transform:scale(1.15)}
+  .st.done .dot{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .st span{color:rgba(255,255,255,.8);font-size:11px;margin-top:7px;line-height:1.15;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+  .st.active span{color:#fff;font-weight:800}
+
+  /* Question */
+  .qmeta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .qcount{font-size:13px;color:var(--mute);font-weight:600}
+  .q{font-size:21px;font-weight:600;line-height:1.35;margin-bottom:20px}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{font-family:inherit;font-size:28px;font-weight:800;padding:16px 10px;border-radius:14px;cursor:pointer;
+    background:#fff;border:1.5px solid var(--line);color:var(--ink);transition:.15s}
+  @media (hover:hover){.opt:hover:not(:disabled){border-color:var(--red);color:var(--red)}}
+  .opt.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+  .opt.bad{background:var(--bad-bg);color:var(--red);border-color:var(--red)}
+  .opt:disabled{cursor:default}
+  .tf .opt{font-size:18px;text-transform:uppercase;letter-spacing:.03em}
+  .order-list{display:flex;flex-direction:column;margin-bottom:16px;border-top:1.5px solid var(--line)}
+  .oitem{display:flex;align-items:center;gap:14px;font-family:inherit;font-size:17px;text-align:left;padding:14px 4px;
+    background:#fff;border:none;border-bottom:1.5px solid var(--line);cursor:pointer;color:var(--ink);transition:.15s}
+  @media (hover:hover){.oitem:hover:not(:disabled){color:var(--red)}}
+  .oitem .num{flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;
+    border:1.5px solid var(--line);color:var(--mute)}
+  .oitem.sel .num{background:var(--red);border-color:var(--red);color:#fff}
+  .oitem.ok .num{background:var(--ok);border-color:var(--ok);color:#fff}
+  .oitem.bad .num{background:var(--ink);border-color:var(--ink);color:#fff}
+  .oitem.bad{color:var(--red)}
+  .oitem .yr{margin-left:auto;font-weight:800;font-size:18px;display:none;white-space:nowrap;color:var(--ink)}
+  .oitem.reveal .yr{display:block}
+  .hint{font-size:14px;color:var(--mute);margin:-8px 0 14px}
+
+  .feedback{margin-top:18px;border-radius:14px;padding:14px 16px;line-height:1.45;font-size:15px;display:none}
+  .feedback.show{display:block;animation:pop .25s}
+  .feedback.ok{background:var(--ok-bg)}
+  .feedback.bad{background:var(--bad-bg)}
+  .feedback b{display:block;margin-bottom:4px;text-transform:uppercase;font-weight:800;font-size:14px;letter-spacing:.03em}
+  .feedback.ok b{color:var(--ok)} .feedback.bad b{color:var(--red)}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}}
+  .next{margin-top:14px;display:none}
+  .next.show{display:block}
+
+  /* Reward */
+  .reward{text-align:center}
+  .reward .big{font-weight:800;font-size:64px;color:var(--red);line-height:1;margin:6px 0 10px;animation:pop .4s}
+  .reward h2{font-weight:800;font-size:22px;text-transform:uppercase;margin-bottom:8px}
+  .reward p{color:var(--mute);margin-bottom:22px;font-size:16px}
+
+  /* Final */
+  .final{text-align:left}
+  .rank-name{font-weight:800;font-size:44px;line-height:1;text-transform:uppercase;margin:4px 0 10px}
+  .final .txt{font-size:17px;color:var(--mute);margin-bottom:18px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1.5px solid var(--line);border-bottom:1.5px solid var(--line);margin-bottom:18px}
+  .stats div{padding:14px 4px}
+  .stats div+div{border-left:1.5px solid var(--line);padding-left:14px}
+  .stats b{display:block;font-size:30px;font-weight:800}
+  .stats small{color:var(--mute);font-size:13px}
+  .regalia{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 22px}
+  .regalia span{border:2px solid var(--red);color:var(--red);border-radius:999px;padding:5px 12px;font-weight:800;font-size:13px;text-transform:uppercase}
+  .review{margin:6px 0 22px}
+  .review .r{display:grid;grid-template-columns:120px 1fr;gap:14px;padding:12px 0;border-bottom:1.5px solid var(--line);font-size:15px;line-height:1.35}
+  .review .r:first-of-type{border-top:1.5px solid var(--line)}
+  .review .r b{font-weight:800;font-size:19px}
+  .hidden{display:none!important}
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  @media (min-width:768px){
+    body{padding:48px 24px}
+    .app{max-width:720px;gap:22px}
+    .head h1{font-size:52px}
+    .card{padding:36px 40px}
+    .pill-div{margin:0 -40px 26px}
+    .q{font-size:24px}
+    .opt{font-size:32px;padding:20px 10px}
+    .oitem{font-size:18px;padding:16px 4px}
+  }
+  @media (min-width:1200px){
+    .app{max-width:780px}
+  }
+  @media (max-height:700px) and (min-width:768px){
+    body{padding-top:24px}
+  }
+  @media (max-width:440px){
+    .head h1{font-size:30px}
+    .card{padding:24px 18px}
+    .pill-div{margin:0 -18px 20px}
+    .pill{font-size:13px;padding:5px 12px}
+    .q{font-size:18px}
+    .opt{font-size:24px}
+    .rows .row{grid-template-columns:84px 1fr;gap:12px}
+    .rows .k{font-size:24px}
+    .st span{font-size:10px;visibility:hidden;white-space:nowrap}
+    .st.active span{visibility:visible}
+    .st:first-child.active span{align-self:flex-start}
+    .st:last-child.active span{align-self:flex-end}
+    .rank-name{font-size:36px}
+    .review .r{grid-template-columns:96px 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- START -->
+  <header class="head" id="head">
+    <div class="kicker">Козацтво. Повторення</div>
+    <h1>Шлях до булави</h1>
+  </header>
+  <section class="card" id="startScreen">
+    <div class="rows">
+      <div class="row"><div class="k">5</div><div class="v"><b>станцій.</b> Від Хортиці до зруйнування Січі</div></div>
+      <div class="row"><div class="k">5:00</div><div class="v"><b>хвилин на все.</b> Час спливає — квест завершується</div></div>
+      <div class="row"><div class="k">16</div><div class="v"><b>завдань.</b> Дати, хронологія, «правда чи міф»</div></div>
+      <div class="row"><div class="k">+</div><div class="v"><b>Бонус за час.</b> Швидше — більше балів</div></div>
+    </div>
+    <div style="height:18px"></div>
+    <button class="btn" id="startBtn">Рушаймо в похід</button>
+  </section>
+
+  <!-- GAME -->
+  <div id="gameScreen" class="hidden" style="display:flex;flex-direction:column;gap:12px">
+    <div class="hud">
+      <div class="timer" id="timer">5:00</div>
+      <div class="score"><span id="score">0</span> балів</div>
+    </div>
+    <div class="timebar"><div id="timebar" style="width:100%"></div></div>
+    <div class="map" id="map"></div>
+    <section class="card" id="qCard"></section>
+  </div>
+
+  <!-- FINAL -->
+  <section class="card final hidden" id="finalScreen"></section>
+</div>
+
+<script>
+const TOTAL = 300;
+
+const STATIONS = [
+  { name:"Витоки", icon:"🏝️", reward:"🚩", rewardName:"Бунчук", tasks:[
+    {t:"choice", q:"Перша писемна згадка про українських козаків (у хроніці Мартина Бєльського):",
+      a:"1489", o:["1489","1492","1556","1578"],
+      f:"1489 рік — козаки згадуються в польській хроніці Мартина Бєльського. А 1492 року кримський хан скаржився на напад «черкаських» козаків."},
+    {t:"choice", q:"Дмитро Вишневецький (Байда) збудував замок на острові Мала Хортиця — прообраз Запорозької Січі. Коли?",
+      a:"1556", o:["1556","1648","1578","1621"],
+      f:"Близько 1556 року Вишневецький об'єднав козаків у фортеці на Малій Хортиці — це вважають першою Січчю."},
+    {t:"tf", q:"1578 року за реформою короля Стефана Баторія реєстр збільшили до 500 козаків, а їхнім центром став Трахтемирів.",
+      a:true, f:"Правда. За реформою Стефана Баторія (1578) реєстрові козаки отримали платню, клейноди, власного старшого та місто Трахтемирів зі шпиталем."}
+  ]},
+  { name:"Повстання", icon:"🔥", reward:"🥁", rewardName:"Литаври", tasks:[
+    {t:"order", q:"Розташуй події в хронологічному порядку:",
+      items:[["Повстання Криштофа Косинського","1591–1593"],["Повстання Северина Наливайка","1594–1596"],["Хотинська битва","1621"],["«Ординація» Війська Запорозького","1638"]],
+      f:"Косинський (1591–1593) → Наливайко (1594–1596) → Хотин (1621) → Ординація (1638)."},
+    {t:"choice", q:"Хотинська битва, у якій прославився гетьман Петро Конашевич-Сагайдачний:",
+      a:"1621", o:["1618","1621","1625","1648"],
+      f:"1621 рік — козаки Сагайдачного допомогли зупинити величезне османське військо під Хотином."},
+    {t:"tf", q:"Повстання Северина Наливайка відбулося у 1637–1638 роках.",
+      a:false, f:"Неправда! Наливайко повстав у 1594–1596 рр. А 1637–1638 — повстання Павлюка, Острянина та Гуні."}
+  ]},
+  { name:"Хмельниччина", icon:"⚔️", reward:"🔱", rewardName:"Булава", tasks:[
+    {t:"choice", q:"Початок Національно-визвольної війни під проводом Богдана Хмельницького:",
+      a:"1648", o:["1638","1648","1654","1657"],
+      f:"1648 рік — повстання на Січі, перемоги під Жовтими Водами та Корсунем."},
+    {t:"order", q:"Розташуй битви й події Хмельниччини по порядку:",
+      items:[["Битва під Жовтими Водами","1648"],["Зборівська битва","1649"],["Битва під Берестечком","1651"],["Батозька битва","1652"],["Переяславська рада","1654"]],
+      f:"Жовті Води (1648) → Зборів (1649) → Берестечко (1651) → Батіг (1652) → Переяслав (1654)."},
+    {t:"tf", q:"Зборівський договір було підписано 1651 року.",
+      a:false, f:"Неправда! Зборівський договір — 1649 р. А 1651 року після Берестечка підписали Білоцерківський договір."},
+    {t:"choice", q:"Переяславська рада — укладення союзу з Московським царством:",
+      a:"1654", o:["1649","1654","1657","1667"],
+      f:"Січень 1654 року — Переяславська рада."}
+  ]},
+  { name:"Руїна", icon:"🏚️", reward:"📜", rewardName:"Печатка", tasks:[
+    {t:"choice", q:"Конотопська битва — перемога гетьмана Івана Виговського над московським військом:",
+      a:"1659", o:["1658","1659","1663","1709"],
+      f:"1659 рік. А роком раніше (1658) Виговський уклав Гадяцький договір."},
+    {t:"tf", q:"Андрусівське перемир'я 1667 року поділило українські землі по Дніпру між Московією та Річчю Посполитою.",
+      a:true, f:"Правда. Лівобережжя відійшло до Московії, Правобережжя — до Речі Посполитої."},
+    {t:"choice", q:"Полтавська битва, після якої Іван Мазепа був змушений залишити Україну:",
+      a:"1709", o:["1687","1700","1709","1710"],
+      f:"1709 рік — поразка шведсько-українських військ під Полтавою."}
+  ]},
+  { name:"Занепад Січі", icon:"🌅", reward:"🏳️", rewardName:"Хоругва", tasks:[
+    {t:"choice", q:"Конституція (Бендерська) Пилипа Орлика:",
+      a:"1710", o:["1654","1709","1710","1764"],
+      f:"1710 рік — один із перших конституційних документів Європи."},
+    {t:"order", q:"Останній крок! Розташуй події по порядку:",
+      items:[["Переяславська рада","1654"],["Полтавська битва","1709"],["Ліквідація гетьманства","1764"],["Зруйнування Запорозької Січі","1775"]],
+      f:"1654 → 1709 → 1764 → 1775."},
+    {t:"tf", q:"Запорозьку Січ зруйнували російські війська за наказом Катерини ІІ у 1775 році.",
+      a:true, f:"Правда. Червень 1775 року — кінець Нової Січі."}
+  ]}
+];
+
+const RANKS = [
+  {min:0,   icon:"🧒", name:"Джура", txt:"Похід лише починається! Повтори дати й спробуй ще раз."},
+  {min:60,  icon:"🗡️", name:"Козак", txt:"Добрий початок — шабля вже в руці!"},
+  {min:110, icon:"🎖️", name:"Сотник", txt:"Гідний результат! Ще трохи — і полк твій."},
+  {min:150, icon:"🛡️", name:"Полковник", txt:"Чудово знаєш історію козацтва!"},
+  {min:190, icon:"👑", name:"Гетьман", txt:"Неймовірно! Булава по праву твоя!"}
+];
+
+let st, ti, score, timeLeft, timerId, finished, correct, totalTasks, mistakes, regalia, answered;
+
+const $ = id => document.getElementById(id);
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+
+$("startBtn").onclick = start;
+
+function start(){
+  st=0; ti=0; score=0; timeLeft=TOTAL; finished=false; correct=0; mistakes=[]; regalia=[];
+  totalTasks = STATIONS.reduce((s,x)=>s+x.tasks.length,0);
+  $("startScreen").classList.add("hidden"); $("head").classList.add("hidden");
+  $("finalScreen").classList.add("hidden");
+  $("gameScreen").classList.remove("hidden");
+  $("score").textContent=0;
+  renderMap(); renderTask(); tick();
+  clearInterval(timerId);
+  timerId=setInterval(()=>{ timeLeft--; tick(); if(timeLeft<=0) finish(true); },1000);
+}
+
+function tick(){
+  const m=Math.floor(Math.max(timeLeft,0)/60), s=Math.max(timeLeft,0)%60;
+  $("timer").textContent=`${m}:${String(s).padStart(2,"0")}`;
+  $("timer").classList.toggle("warn", timeLeft<=30);
+  $("timebar").style.width = (Math.max(timeLeft,0)/TOTAL*100)+"%";
+}
+
+function renderMap(){
+  $("map").innerHTML = STATIONS.map((s,i)=>
+    `<div class="st ${i<st?'done':''} ${i===st?'active':''}"><div class="dot">${i<st?'✓':i+1}</div><span>${s.name}</span></div>`
+  ).join("");
+}
+
+function addScore(n){ score+=n; $("score").textContent=score; }
+
+function renderTask(){
+  answered=false;
+  const S=STATIONS[st], T=S.tasks[ti];
+  const label = {choice:"Обери дату", tf:"Правда чи міф?", order:"Хронологія"}[T.t];
+  let html = `<div class="pill-div"><span class="pill">Станція ${st+1} — ${S.name}</span></div>
+    <div class="qmeta"><div class="label" style="margin:0">${label}</div><div class="qcount">${ti+1} / ${S.tasks.length}</div></div>
+    <div class="q">${T.q}</div>`;
+  if(T.t==="choice"){
+    html += `<div class="opts">${shuffle(T.o).map(o=>`<button class="opt" data-v="${o}">${o}</button>`).join("")}</div>`;
+  } else if(T.t==="tf"){
+    html += `<div class="opts tf"><button class="opt" data-v="true">Правда</button><button class="opt" data-v="false">Міф</button></div>`;
+  } else {
+    html += `<p class="hint">Натискай події від найдавнішої до найпізнішої. Повторне натискання — скасувати.</p>
+      <div class="order-list">${shuffle(T.items.map((it,i)=>({it,i}))).map(o=>
+        `<button class="oitem" data-i="${o.i}"><span class="num"></span><span>${o.it[0]}</span><span class="yr">${o.it[1]}</span></button>`).join("")}</div>
+      <button class="btn" id="checkBtn" disabled>Перевірити</button>`;
+  }
+  html += `<div class="feedback" id="fb"></div><button class="btn next" id="nextBtn">Далі</button>`;
+  $("qCard").innerHTML = html;
+  $("qCard").style.animation="none"; void $("qCard").offsetWidth; $("qCard").style.animation="pop .3s";
+
+  if(T.t==="order") setupOrder(T);
+  else $("qCard").querySelectorAll(".opt").forEach(b=>b.onclick=()=>answerChoice(b,T));
+  $("nextBtn").onclick = next;
+}
+
+function answerChoice(btn,T){
+  if(answered||finished) return; answered=true;
+  const val = T.t==="tf" ? btn.dataset.v==="true" : btn.dataset.v;
+  const ok = val===T.a;
+  $("qCard").querySelectorAll(".opt").forEach(b=>{
+    b.disabled=true;
+    const v = T.t==="tf" ? b.dataset.v==="true" : b.dataset.v;
+    if(v===T.a) b.classList.add("ok");
+  });
+  if(!ok) btn.classList.add("bad");
+  result(ok,T, T.t==="tf" ? (T.a?"Правда":"Міф") : T.a);
+}
+
+function setupOrder(T){
+  const picked=[];
+  const items=[...$("qCard").querySelectorAll(".oitem")];
+  const redraw=()=>{
+    items.forEach(b=>{
+      const p=picked.indexOf(+b.dataset.i);
+      b.classList.toggle("sel",p>=0);
+      b.querySelector(".num").textContent = p>=0 ? p+1 : "";
+    });
+    $("checkBtn").disabled = picked.length!==items.length;
+  };
+  items.forEach(b=>b.onclick=()=>{
+    if(answered||finished) return;
+    const i=+b.dataset.i, p=picked.indexOf(i);
+    if(p>=0) picked.splice(p); else picked.push(i);
+    redraw();
+  });
+  $("checkBtn").onclick=()=>{
+    if(answered||finished) return; answered=true;
+    let allOk=true;
+    items.forEach(b=>{
+      const i=+b.dataset.i, p=picked.indexOf(i);
+      const ok = p===i;
+      if(!ok) allOk=false;
+      b.classList.add(ok?"ok":"bad","reveal"); b.disabled=true;
+    });
+    $("checkBtn").classList.add("hidden");
+    result(allOk,T,T.items.map(x=>x[1]).join(" → "), allOk?15:0);
+  };
+}
+
+function result(ok,T,correctText,pts){
+  if(ok){ correct++; addScore(pts||10); }
+  else mistakes.push({q:T.q.replace(/:$/,""), a: T.t==="order" ? T.f : correctText, order:T.t==="order", items:T.items});
+  const fb=$("fb");
+  fb.className="feedback show "+(ok?"ok":"bad");
+  fb.innerHTML=`<b>${ok?"Влучно, козаче! +"+(pts||10):"Промах"}</b>${T.f}`;
+  $("nextBtn").classList.add("show");
+  $("nextBtn").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function next(){
+  if(finished) return;
+  const S=STATIONS[st];
+  ti++;
+  if(ti>=S.tasks.length){
+    regalia.push(S.rewardName);
+    showReward(S);
+  } else renderTask();
+}
+
+function showReward(S){
+  const last = st===STATIONS.length-1;
+  $("qCard").innerHTML = `<div class="reward"><div class="pill-div"><span class="pill">Станцію пройдено</span></div>
+    <div class="label">Здобуто клейнод</div>
+    <div class="big">${S.rewardName}</div>
+    <h2>${S.name}</h2>
+    <p>${st+1} з ${STATIONS.length} станцій позаду</p>
+    <button class="btn" id="goBtn">${last?"До фінальної ради":"Наступна станція"}</button></div>`;
+  st++; ti=0; renderMap();
+  $("goBtn").onclick = ()=> last ? finish(false) : renderTask();
+}
+
+function finish(timeout){
+  if(finished) return; finished=true;
+  clearInterval(timerId);
+  const bonus = timeout ? 0 : Math.round(Math.max(timeLeft,0)/3);
+  score += bonus;
+  const rank = [...RANKS].reverse().find(r=>score>=r.min);
+  const used = TOTAL-Math.max(timeLeft,0);
+  $("gameScreen").classList.add("hidden");
+  const f=$("finalScreen"); f.classList.remove("hidden");
+  f.innerHTML = `<div class="pill-div"><span class="pill">${timeout?"Час вичерпано":"Квест завершено"}</span></div>
+    <div class="label">Твоє звання</div>
+    <div class="rank-name">${rank.name}</div>
+    <p class="txt">${rank.txt}</p>
+    <div class="stats">
+      <div><b>${score}</b><small>балів${bonus?` · +${bonus} за час`:""}</small></div>
+      <div><b>${correct}/${totalTasks}</b><small>правильних</small></div>
+      <div><b>${Math.floor(used/60)}:${String(used%60).padStart(2,"0")}</b><small>витрачено</small></div>
+    </div>
+    <div class="label">Здобуті клейноди</div>
+    <div class="regalia">${regalia.length?regalia.map(r=>`<span>${r}</span>`).join(""):"<small style='color:#6f6f6f'>Поки жодного</small>"}</div>
+    ${mistakes.length?`<div class="label">Що варто повторити</div><div class="review">${
+      mistakes.map(m=> m.order
+        ? m.items.map(x=>`<div class="r"><b>${x[1]}</b><span>${x[0]}</span></div>`).join("")
+        : `<div class="r"><b>${m.a}</b><span>${m.q}</span></div>`).join("")}</div>`
+      : `<p class="txt">Жодної помилки — справжній знавець!</p>`}
+    <button class="btn" id="againBtn">Пройти ще раз</button>`;
+  $("againBtn").onclick=start;
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+</script>
+</body>
+</html>
